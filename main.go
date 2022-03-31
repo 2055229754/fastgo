@@ -1,7 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	_ "github.com/2055229754/fastgo/app"
+	"github.com/2055229754/fastgo/fast"
+)
 
 func main() {
-	fmt.Println("hellow word")
+	fa := fast.New()
+	for _, v := range fa.Route.Routes {
+		fmt.Println("route", v)
+	}
+	fa.Start()
 }
