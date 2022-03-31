@@ -14,6 +14,8 @@ type App struct {
 	Route  *Router.RouteContainer
 }
 
+var FastApp *App
+
 //初始化项目APP
 func New() *App {
 	app := &App{}
@@ -21,6 +23,7 @@ func New() *App {
 	app.Config = registConfig()
 	//注册路由
 	app.Route = registRoute()
+	FastApp = app
 	return app
 }
 
