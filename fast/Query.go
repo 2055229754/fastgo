@@ -5,15 +5,91 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/2055229754/fastgo/Debug"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+type DbInfo struct {
+	Table    string
+	Host     string
+	Port     int
+	Prefix   string
+	Username string
+	Password string
+	Charset  string
+	Db       *sql.DB
+	Quetybuilder
+	err error
+}
+type Quetybuilder struct {
+	Where  string
+	Order  string
+	Limit  int
+	Offset int
+	Fields string
+}
 
 var (
 	Db  *sql.DB
 	err error
 )
+
+func NewDb(table string) *DbInfo {
+	q := &DbInfo{}
+	q.Table = table
+	return q
+}
+func (db *DbInfo) SetFields(fields string) {
+	db.Fields = fields
+}
+func (db *DbInfo) SetWhereSql(sql string) {
+	db.BuildWhere(sql)
+}
+func (db *DbInfo) SetWhereMap(condition [][]string) {
+	var sql string
+	for _, con := range condition {
+		var conlen = len(con)
+		if conlen == 2 {
+			sql += fmt.Sprintf(" %s='%s' AND", con[0], con[1])
+		}
+		if conlen == 3 {
+			operate := strings.ToUpper(con[1])
+
+			if operate == "IN" {
+				sql += fmt.Sprintf(" %s IN (%s) AND", con[0], con[2])
+			} else if operate == "LIKE" {
+				sql += fmt.Sprintf(" %s LIKE '%s' AND", con[0], con[2])
+			} else {
+				sql += fmt.Sprintf(" %s %s '%s' AND", con[0], con[1], con[2])
+			}
+		}
+		if conlen != 2 && conlen != 3 {
+			Debug.Error("SetWhereMap 格式错误!")
+		}
+	}
+	fmt.Println("原始Sql", sql)
+	if sql != "" {
+		sql = sql[1 : len(sql)-4]
+	}
+	fmt.Println("修正Sql", sql)
+}
+func (db *DbInfo) BuildWhere(sql string) {
+	if db.Where == "" {
+		db.Where = sql
+	} else {
+		db.Where += " AND " + sql
+	}
+}
+
+func (db *DbInfo) StringToWhere(where string) {
+	db.Where = where
+}
+func (db *DbInfo) ArrayToWhere(where map[string]interface{}) {
+
+}
 
 //获取数据库控制器
 func GetDb(host string, port int, username string, password string) (*sql.DB, error) {

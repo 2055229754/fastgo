@@ -106,8 +106,6 @@ func RouteHandle(w http.ResponseWriter, r *http.Request, params httprouter.Param
 		Res:    w,
 		Params: params,
 	}
-	fmt.Println(uri)
-	fmt.Println(method)
 	for _, v := range Route.Routes {
 		var fullurl string
 		if v.Group == "" {
@@ -128,14 +126,11 @@ func executeHandler(ctx *Request.Request, c Controller.ControllerInterface, acti
 	reflectVal := reflect.ValueOf(c)
 	var ok bool
 	execController, ok = reflectVal.Interface().(Controller.ControllerInterface)
-	fmt.Println(execController, ok)
 	if !ok {
 		panic("controller is not ControllerInterface")
 	}
 	controllerName := strings.Split(reflectType.String(), ".")
-	fmt.Println("controllerName", controllerName)
 	execController.Construct(ctx, controllerName[1], action)
-	fmt.Println(controllerName[1], action)
 	fn := reflectVal.MethodByName(action)
 	if !fn.IsValid() {
 
