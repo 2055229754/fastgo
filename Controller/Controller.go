@@ -1,8 +1,14 @@
 package Controller
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"text/template"
 
+	"github.com/2055229754/fastgo/Debug"
 	"github.com/2055229754/fastgo/Request"
 )
 
@@ -22,15 +28,7 @@ type Controller struct {
 	ViewPath       string
 	Layout         string
 	LayoutSections map[string]string // the key is the section name and the value is the template name
-	TplPrefix      string
-	TplExt         string
 	EnableRender   bool
-
-	// xsrf data
-	XSRFExpire int
-	EnableXSRF bool
-
-	// session
 }
 
 type ControllerInterface interface {
@@ -49,14 +47,14 @@ type ControllerInterface interface {
 
 // Init generates default values of controller operations.
 func (c *Controller) Construct(ctx *Request.Request, controllerName, actionName string) {
+	rootPath, _ := filepath.Abs("")
+	c.ViewPath = fmt.Sprintf("%s\\app\\views\\%s\\", rootPath, strings.ToLower(controllerName))
 	c.Layout = ""
-	c.TplName = ""
+	c.TplName = fmt.Sprintf("%s.html", strings.ToLower(actionName))
 	c.controllerName = controllerName
 	c.actionName = actionName
 	c.Ctx = ctx
-	c.TplExt = "tpl"
 	c.EnableRender = true
-	c.EnableXSRF = true
 	c.Data = map[interface{}]interface{}{}
 	c.methodMapping = make(map[string]func())
 	fmt.Println("Controller的构造函数")
@@ -118,5 +116,35 @@ func (c *Controller) Render() error {
 	if !c.EnableRender {
 		return nil
 	}
+	c.ParseRender()
 	return nil
+}
+func (c *Controller) JsonOut(jsondata map[string]interface{}) {
+	c.Ctx.Res.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	c.Ctx.Res.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(c.Ctx.Res).Encode(jsondata); err != nil {
+		Debug.Error(err.Error())
+	}
+}
+func (c *Controller) Assign(key string, value interface{}) {
+	c.Data[key] = value
+}
+func (c *Controller) SetTpl(tpl string) {
+	c.TplName = tpl + ".html"
+}
+func (c *Controller) ParseRender() {
+	// 解析模板
+	tmppath := c.ViewPath + c.TplName
+	t, err := template.ParseFiles(tmppath)
+	fmt.Println("渲染页面")
+	if err != nil {
+		Debug.Except(c.Ctx.Res, c.Ctx.Req, fmt.Sprintf("视图文件加载失败, err%v", err))
+		return
+	}
+	// 渲染数据
+	err = t.Execute(c.Ctx.Res, c.Data)
+	if err != nil {
+		Debug.Except(c.Ctx.Res, c.Ctx.Req, fmt.Sprintf("模板渲染失败, err%v", err))
+		return
+	}
 }
